@@ -5,7 +5,8 @@ class RAM:
         #Paginas de 4k, RAM total de 200k (Numero maximo de paginas 50)
         self.__memoria = [None] * 50
         self.__filaAlocacaoProcesso = []
-    
+        #Todo: Corrigir, nao e mais frequentemente utilizado e sim mais recentemente utilizado
+
     def getMemoriaVirtual(self):
         return self.__id
     
@@ -51,11 +52,13 @@ class RAM:
         return base
     
     #Todo: Otimizar metodo de busca
-    def liberarProcessoDaMemoria(self):
+    def liberarProcessoDaMemoria(self, tipoPaginacao):
 
-        #FIFO
+        processo = None
         if len(self.__filaAlocacaoProcesso) > 0:
             processo = self.__filaAlocacaoProcesso.pop(0)
+        
+        if processo is not None:
             controleLiberacao = False
 
             for i in range(len(self.__memoria)):
@@ -77,15 +80,24 @@ class RAM:
         return None
         
     #Todo: Otimizar metodo de busca
-    def verificarProcessoNaMemoria(self, processo):
+    def verificarProcessoNaMemoria(self, processo, tipoPaginacao):
         base = -1 #Base da memoria aplicada
-        flagAlocado = False
         i = 0
 
         for i in range(len(self.__memoria)):
             if self.__memoria[i] != None and self.__memoria[i].getProcessoId() == processo.getId():
                 base = i
                 print("Processo p" + str(processo.getId()) + " recuperado da memoria")
+
+                if tipoPaginacao == 2:
+                    indexAlocado = -1
+                    for j in range(len(self.__filaAlocacaoProcesso)):
+                        if self.__filaAlocacaoProcesso[j].getId() == processo.getId():
+                            indexAlocado = j
+                    if indexAlocado != -1:
+                        self.__filaAlocacaoProcesso.pop(indexAlocado)
+                        self.__filaAlocacaoProcesso.append(processo)
+
                 break
         
         return base

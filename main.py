@@ -4,16 +4,19 @@ import RAM
 import Disco
 import Escalonamento
 
-def criaProcessosTeste():
+def criaProcessosTeste(numeroProcessos):
     processos = []
     
-    p1 = Processo.Processo(1, 0, 3, 2, 1, 2, 1)
-    p2 = Processo.Processo(2, 1, 4, 2, 1, 2, 1)
-    p3 = Processo.Processo(3, 3, 2, 2, 1, 2, 1)
+    for i in range(numeroProcessos):
 
-    processos.append(p1)
-    processos.append(p2)
-    processos.append(p3)
+        paginas = []
+        for j in range(10):
+            p = Pagina.Pagina(i + 1, j)
+            paginas.append(p)
+
+        p = Processo.Processo(i + 1, 0, i + 3, 2, i + i % 2, 2, 1, paginas)
+
+        processos.append(p)
 
     return processos
 
@@ -109,6 +112,8 @@ except:
 
 print(" ")
 
-processos = criaProcessos(numeroProcessos, tipoEscalonamento)
+#processos = criaProcessos(numeroProcessos, tipoEscalonamento)
+
+processos = criaProcessosTeste(numeroProcessos)
 
 executar(tipoEscalonamento, tipoPaginacao, processos)

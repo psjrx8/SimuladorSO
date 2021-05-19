@@ -1,22 +1,32 @@
-def alocarProcesso(memoriaRAM, memoriaVirtual, processo):
-    #Todo: Verificar processos alocados
+def alocarProcessoPronto(memoriaRAM, memoriaVirtual, processo, tipoPaginacao):
     enderecoAlocacao = None
 
-    enderecoAlocacao = memoriaRAM.verificarProcessoNaMemoria(processo)
+    enderecoAlocacao = memoriaRAM.verificarProcessoNaMemoria(processo, tipoPaginacao)
     
     if enderecoAlocacao == -1:
-        liberarProcessoDisco(memoriaVirtual, processo)
+        enderecoAlocacao = memoriaRAM.alocarProcessoNaMemoria(processo)
+        if enderecoAlocacao == -1:
+            enderecoAlocacaoVirtual = memoriaVirtual.alocarProcessoNoDisco(processo)
+
+def alocarProcesso(memoriaRAM, memoriaVirtual, processo, tipoPaginacao):
+    #Todo: Processo finalizado nao deve ser alocado na memoria virtual
+    enderecoAlocacao = None
+
+    enderecoAlocacao = memoriaRAM.verificarProcessoNaMemoria(processo, tipoPaginacao)
+    
+    if enderecoAlocacao == -1:
         enderecoAlocacao = memoriaRAM.alocarProcessoNaMemoria(processo)
         while enderecoAlocacao == -1:
-            processoLiberado = liberarProcessoRAM(memoriaRAM)
+            processoLiberado = liberarProcessoRAM(memoriaRAM, tipoPaginacao)
             enderecoAlocacaoVirtual = memoriaVirtual.alocarProcessoNoDisco(processoLiberado)
             enderecoAlocacao = memoriaRAM.alocarProcessoNaMemoria(processo)
-        
+        liberarProcessoDisco(memoriaVirtual, processo)
+
     return enderecoAlocacao
 
-def liberarProcessoRAM(memoriaRAM):
+def liberarProcessoRAM(memoriaRAM, tipoPaginacao):
     #Todo: Verificar processos alocados
-    processoLiberado = memoriaRAM.liberarProcessoDaMemoria()
+    processoLiberado = memoriaRAM.liberarProcessoDaMemoria(tipoPaginacao)
     return processoLiberado
 
 def liberarProcessoDisco(memoriaVirtual, processo):
@@ -52,7 +62,8 @@ def FIFO(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
         #Atualiza fila de pronto
         for i in range(len(processos)):
             if processos[i].getTempoChegada() == tempoTotal:
-                filaPronto.append(processos[i]) 
+                filaPronto.append(processos[i])
+                alocarProcessoPronto(memoriaRAM, memoriaVirtual, processos[i], tipoPaginacao)
         
         if len(filaPronto) > 0 or processoEmExecucao is not None:
 
@@ -60,7 +71,7 @@ def FIFO(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 processoEmExecucao = filaPronto.pop(0)
                 print("Processo p" + str(processoEmExecucao.getId()) + " comecou a executar")
                 tempoExecutado = processoEmExecucao.getTempoExecutado()
-                enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+                enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao, tipoPaginacao)
 
                 tempoExecutado += 1
             else:
@@ -99,6 +110,7 @@ def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
         for i in range(len(processos)):
             if processos[i].getTempoChegada() == tempoTotal:
                 filaPronto.append(processos[i])
+                alocarProcessoPronto(memoriaRAM, memoriaVirtual, processos[i], tipoPaginacao)
         
         filaPronto.sort(key=lambda processo: processo.getTempoExecucao())
 
@@ -108,7 +120,7 @@ def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 processoEmExecucao = filaPronto.pop(0)
                 print("Processo p" + str(processoEmExecucao.getId()) + " comecou a executar")
                 tempoExecutado = processoEmExecucao.getTempoExecutado()
-                enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+                enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao, tipoPaginacao)
 
                 tempoExecutado += 1
             else:
@@ -122,6 +134,9 @@ def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                     processoEmExecucao.setTempoTermino(tempoRelativo)
                     processoEmExecucao = None
                     processosFinalizados += 1
+
+            if len(filaPronto) > 0:
+                filaPronto.sort(key=lambda processo: processo.getTempoExecucao())
 
             imprimeProcessosProntos(filaPronto)
 
@@ -149,6 +164,7 @@ def robinRound(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
         for i in range(len(processos)):
             if processos[i].getTempoChegada() == tempoTotal:
                 filaPronto.append(processos[i])
+                alocarProcessoPronto(memoriaRAM, memoriaVirtual, processos[i], tipoPaginacao)
         
         if len(filaPronto) > 0 or processoEmExecucao is not None:
         
@@ -157,7 +173,7 @@ def robinRound(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 if processoEmExecucao is None:
                     processoEmExecucao = filaPronto.pop(0)
                     tempoExecutado = processoEmExecucao.getTempoExecutado()
-                    enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+                    enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao, tipoPaginacao)
                     
                 tempoExecutado += 1
                 
@@ -209,6 +225,7 @@ def EDF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
         for i in range(len(processos)):
             if processos[i].getTempoChegada() == tempoTotal:
                 filaPronto.append(processos[i])
+                alocarProcessoPronto(memoriaRAM, memoriaVirtual, processos[i], tipoPaginacao)
         
         filaPronto.sort(key=lambda processo: processo.getDeadline())
 
@@ -219,7 +236,7 @@ def EDF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 if processoEmExecucao is None:
                     processoEmExecucao = filaPronto.pop(0)
                     tempoExecutado = processoEmExecucao.getTempoExecutado()
-                    enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+                    enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao, tipoPaginacao)
                     
                 tempoExecutado += 1
                 
@@ -244,7 +261,10 @@ def EDF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
             else:
                 print("Sobrecarga do sistema: " + str(sobrecarga))
                 sobrecarga -= 1
-    
+
+            if len(filaPronto) > 0:
+                filaPronto.sort(key=lambda processo: processo.getDeadline())
+
             imprimeProcessosProntos(filaPronto)
 
         tempoTotal += 1
