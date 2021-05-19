@@ -4,6 +4,7 @@ class RAM:
         #Tamanho da RAM definido no escopo
         #Paginas de 4k, RAM total de 200k (Numero maximo de paginas 50)
         self.__memoria = [None] * 50
+        self.__filaAlocacaoProcesso = []
     
     def getMemoriaVirtual(self):
         return self.__id
@@ -14,12 +15,12 @@ class RAM:
     def getEndereco(self, posicao):
         return self.__memoria[posicao]
 
+    #Todo: Otimizar metodo de busca
     def alocarProcessoNaMemoria(self, processo):
         paginas = processo.getPaginas()
         tamanhoProcesso = len(paginas)
         base = -1 #Base da memoria aplicada
         deslocamento = 0 #Deslocamento ate a posicao final de alocacao do processo na memoria
-        flagAlocacao = True
 
         for i in range(len(self.__memoria)):
             
@@ -37,18 +38,54 @@ class RAM:
                 if areaMemoria.getProcessoId() == processo.getId():
                     base = i
                     deslocamento = tamanhoProcesso
-                    flagAlocacao = False
         
-        if deslocamento == tamanhoProcesso and base != -1 and flagAlocacao:
+        if deslocamento == tamanhoProcesso and base != -1:
             for i in range(base, base + deslocamento):
                 self.__memoria[i] = paginas[base - i]
-            print("Processo " + str(processo.getId()) + " alocado na memoria")
-        elif not flagAlocacao:
-            print("Processo " + str(processo.getId()) + " recuperado da memoria")
+            print("Processo p" + str(processo.getId()) + " alocado na memoria")
+            self.__filaAlocacaoProcesso.append(processo)
         else:
             base = -1
-            print("Processo " + str(processo.getId()) + " nao pode ser alocado em memoria real")
+            print("Processo p" + str(processo.getId()) + " nao pode ser alocado em memoria")
         
         return base
+    
+    #Todo: Otimizar metodo de busca
+    def liberarProcessoDaMemoria(self):
+
+        #FIFO
+        if len(self.__filaAlocacaoProcesso) > 0:
+            processo = self.__filaAlocacaoProcesso.pop(0)
+            controleLiberacao = False
+
+            for i in range(len(self.__memoria)):
+                
+                if self.__memoria[i] != None:
+                    if self.__memoria[i].getProcessoId() == processo.getId():
+                        self.__memoria[i] = None
+                controleLiberacao = True
+
+            
+            if controleLiberacao:
+                print("Processo p" + str(processo.getId()) + " liberado da memoria")
+
+            return processo
+
+        else:
+            print("Nao ha processo alocado em memoria")
         
+        return None
         
+    #Todo: Otimizar metodo de busca
+    def verificarProcessoNaMemoria(self, processo):
+        base = -1 #Base da memoria aplicada
+        flagAlocado = False
+        i = 0
+
+        for i in range(len(self.__memoria)):
+            if self.__memoria[i] != None and self.__memoria[i].getProcessoId() == processo.getId():
+                base = i
+                print("Processo p" + str(processo.getId()) + " recuperado da memoria")
+                break
+        
+        return base

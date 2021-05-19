@@ -31,8 +31,25 @@ class Disco:
         if deslocamento == tamanhoProcesso and base != -1:
             for i in range(base, base + deslocamento):
                 self.__memoriaVirtual[i] = paginas[base - i]
-            print("Processo " + str(processo.getId()) + " alocado na memoria virtual")
+            print("Processo p" + str(processo.getId()) + " alocado na memoria virtual")
         else:
             print("Disco nao possui espaco suficiente para alocacao do processo " + str(processo.getId()))
         
         return base
+
+    def liberarProcessoDoDisco(self, processo):
+
+        controleLiberacao = False
+
+        for i in range(len(self.__memoriaVirtual)):
+            
+            if self.__memoriaVirtual[i] != None:
+                if self.__memoriaVirtual[i].getProcessoId() == processo.getId():
+                    self.__memoriaVirtual[i] = None
+                    controleLiberacao = True
+
+        
+        if controleLiberacao:
+            print("Processo p" + str(processo.getId()) + " liberado na memoria virtual")
+        
+        return processo

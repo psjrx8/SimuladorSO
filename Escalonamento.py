@@ -1,11 +1,28 @@
 def alocarProcesso(memoriaRAM, memoriaVirtual, processo):
     #Todo: Verificar processos alocados
     enderecoAlocacao = None
-    enderecoAlocacao = memoriaRAM.alocarProcessoNaMemoria(processo)
-    #if enderecoAlocacao == -1:
-    #    enderecoAlocacao = memoriaVirtual.alocarProcessoNoDisco(processo)
+
+    enderecoAlocacao = memoriaRAM.verificarProcessoNaMemoria(processo)
+    
+    if enderecoAlocacao == -1:
+        liberarProcessoDisco(memoriaVirtual, processo)
+        enderecoAlocacao = memoriaRAM.alocarProcessoNaMemoria(processo)
+        while enderecoAlocacao == -1:
+            processoLiberado = liberarProcessoRAM(memoriaRAM)
+            enderecoAlocacaoVirtual = memoriaVirtual.alocarProcessoNoDisco(processoLiberado)
+            enderecoAlocacao = memoriaRAM.alocarProcessoNaMemoria(processo)
         
     return enderecoAlocacao
+
+def liberarProcessoRAM(memoriaRAM):
+    #Todo: Verificar processos alocados
+    processoLiberado = memoriaRAM.liberarProcessoDaMemoria()
+    return processoLiberado
+
+def liberarProcessoDisco(memoriaVirtual, processo):
+    #Todo: Verificar processos alocados
+    memoriaVirtual.liberarProcessoDoDisco(processo)
+
 
 def imprimeProcessosProntos(filaPronto):
     processosProntos = ""
@@ -43,7 +60,8 @@ def FIFO(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 processoEmExecucao = filaPronto.pop(0)
                 print("Processo p" + str(processoEmExecucao.getId()) + " comecou a executar")
                 tempoExecutado = processoEmExecucao.getTempoExecutado()
-                alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+                enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+
                 tempoExecutado += 1
             else:
                 tempoExecutado += 1
@@ -90,7 +108,8 @@ def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 processoEmExecucao = filaPronto.pop(0)
                 print("Processo p" + str(processoEmExecucao.getId()) + " comecou a executar")
                 tempoExecutado = processoEmExecucao.getTempoExecutado()
-                alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+                enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+
                 tempoExecutado += 1
             else:
                 tempoExecutado += 1
@@ -138,7 +157,7 @@ def robinRound(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 if processoEmExecucao is None:
                     processoEmExecucao = filaPronto.pop(0)
                     tempoExecutado = processoEmExecucao.getTempoExecutado()
-                    alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+                    enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
                     
                 tempoExecutado += 1
                 
@@ -200,15 +219,15 @@ def EDF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 if processoEmExecucao is None:
                     processoEmExecucao = filaPronto.pop(0)
                     tempoExecutado = processoEmExecucao.getTempoExecutado()
-                    alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
+                    enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao)
                     
                 tempoExecutado += 1
                 
                 if tempoExecutado == 1:
                     print("Processo p" + str(processoEmExecucao.getId()) + " comecou a executar")
-                elif tempoExecutado < processoEmExecucao.getTempoExecucao() and tempoExecutado % processoEmExecucao.getQuantum() != 0:
+                elif tempoExecutado < processoEmExecucao.getTempoExecucao() and (tempoExecutado % processoEmExecucao.getQuantum() != 0 or len(filaPronto) == 0):
                     print("Processo p" + str(processoEmExecucao.getId()) + " esta em execucao com " + str(processoEmExecucao.getTempoExecucao() - tempoExecutado) + "ut pendente")
-                elif tempoExecutado % processoEmExecucao.getQuantum() == 0 and tempoExecutado != processoEmExecucao.getTempoExecucao():
+                elif tempoExecutado % processoEmExecucao.getQuantum() == 0 and tempoExecutado != processoEmExecucao.getTempoExecucao() and len(filaPronto) > 0:
                     print("Processo p" + str(processoEmExecucao.getId()) + " pausou a execucao com " + str(processoEmExecucao.getTempoExecucao() - tempoExecutado) + "ut pendente")
                     processoEmExecucao.setTempoExecutado(tempoExecutado)
                     sobrecarga = processoEmExecucao.getSobrecarga()
