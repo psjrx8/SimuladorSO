@@ -33,7 +33,6 @@ def liberarProcessoDisco(memoriaVirtual, processo):
     #Todo: Verificar processos alocados
     memoriaVirtual.liberarProcessoDoDisco(processo)
 
-
 def imprimeProcessosProntos(filaPronto):
     processosProntos = ""
     for p in filaPronto:
@@ -43,7 +42,16 @@ def imprimeProcessosProntos(filaPronto):
             processosProntos = "p" + str(p.getId())
     print("Fila de processos prontos: " + processosProntos)
 
-def FIFO(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
+def logUsoProcessador(processoEmExecucao, tempoExecucao, processosProntos):
+    status = None
+
+    if processoEmExecucao is not None:
+        processoEmExecucao.setLogUsoProcessador(tempoExecucao, tempoExecucao + 1)
+    if processosProntos is not None:
+        for processo in processosProntos:
+            processo.setLogUsoProcessador(tempoExecucao, tempoExecucao + 1)
+
+def FIFO(tipoPaginacao, processos, memoriaRAM, memoriaVirtual, tempoLimite=None):
     
     filaPronto = []
     
@@ -54,7 +62,7 @@ def FIFO(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
     
     processoEmExecucao = None
 
-    while (processosFinalizados < len(processos)):
+    while (processosFinalizados < len(processos) and (tempoLimite is None or tempoTotal <= tempoLimite)):
         
         print("----------------------------------")
         print("Intervalo tempo: " + str(tempoTotal) + " - " + str(tempoTotal + 1))
@@ -64,6 +72,7 @@ def FIFO(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
             if processos[i].getTempoChegada() == tempoTotal:
                 filaPronto.append(processos[i])
                 alocarProcessoPronto(memoriaRAM, memoriaVirtual, processos[i], tipoPaginacao)
+                processos[i].setStatusExecucao("Pronto")
         
         if len(filaPronto) > 0 or processoEmExecucao is not None:
 
@@ -72,14 +81,20 @@ def FIFO(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 print("Processo p" + str(processoEmExecucao.getId()) + " comecou a executar")
                 tempoExecutado = processoEmExecucao.getTempoExecutado()
                 enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao, tipoPaginacao)
+                processoEmExecucao.setStatusExecucao("Executando")
+                logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
 
                 tempoExecutado += 1
             else:
                 tempoExecutado += 1
                 if tempoExecutado < processoEmExecucao.getTempoExecucao():
                     print("Processo p" + str(processoEmExecucao.getId()) + " esta em execucao")
+                    processoEmExecucao.setStatusExecucao("Executando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                 else:
                     print("Processo p" + str(processoEmExecucao.getId()) + " finalizou a execucao")
+                    processoEmExecucao.setStatusExecucao("Finalizando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                     tempoRelativo = tempoTotal - processoEmExecucao.getTempoChegada()
                     processoEmExecucao.setTempoExecutado(tempoExecutado)
                     processoEmExecucao.setTempoTermino(tempoRelativo)
@@ -90,7 +105,7 @@ def FIFO(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
 
         tempoTotal += 1
 
-def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
+def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual, tempoLimite=None):
     
     filaPronto = []
     
@@ -101,7 +116,7 @@ def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
     
     processoEmExecucao = None
 
-    while (processosFinalizados < len(processos)):
+    while (processosFinalizados < len(processos) and (tempoLimite is None or tempoTotal <= tempoLimite)):
         
         print("----------------------------------")
         print("Intervalo tempo: " + str(tempoTotal) + " - " + str(tempoTotal + 1))
@@ -111,6 +126,7 @@ def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
             if processos[i].getTempoChegada() == tempoTotal:
                 filaPronto.append(processos[i])
                 alocarProcessoPronto(memoriaRAM, memoriaVirtual, processos[i], tipoPaginacao)
+                processos[i].setStatusExecucao("Pronto")
         
         filaPronto.sort(key=lambda processo: processo.getTempoExecucao())
 
@@ -121,14 +137,20 @@ def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 print("Processo p" + str(processoEmExecucao.getId()) + " comecou a executar")
                 tempoExecutado = processoEmExecucao.getTempoExecutado()
                 enderecoAlocacao = alocarProcesso(memoriaRAM, memoriaVirtual, processoEmExecucao, tipoPaginacao)
+                processoEmExecucao.setStatusExecucao("Executando")
+                logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
 
                 tempoExecutado += 1
             else:
                 tempoExecutado += 1
                 if tempoExecutado < processoEmExecucao.getTempoExecucao():
                     print("Processo p" + str(processoEmExecucao.getId()) + " esta em execucao")
+                    processoEmExecucao.setStatusExecucao("Executando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                 else:
                     print("Processo p" + str(processoEmExecucao.getId()) + " finalizou a execucao")
+                    processoEmExecucao.setStatusExecucao("Finalizando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                     tempoRelativo = tempoTotal - processoEmExecucao.getTempoChegada()
                     processoEmExecucao.setTempoExecutado(tempoExecutado)
                     processoEmExecucao.setTempoTermino(tempoRelativo)
@@ -142,7 +164,7 @@ def SJF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
 
         tempoTotal += 1
 
-def robinRound(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
+def robinRound(tipoPaginacao, processos, memoriaRAM, memoriaVirtual, tempoLimite=None):
     
     filaPronto = []
     
@@ -155,7 +177,7 @@ def robinRound(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
 
     sobrecarga = 0
 
-    while (processosFinalizados < len(processos)):
+    while (processosFinalizados < len(processos) and (tempoLimite is None or tempoTotal <= tempoLimite)):
         
         print("----------------------------------")
         print("Intervalo tempo: " + str(tempoTotal) + " - " + str(tempoTotal + 1))
@@ -165,6 +187,7 @@ def robinRound(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
             if processos[i].getTempoChegada() == tempoTotal:
                 filaPronto.append(processos[i])
                 alocarProcessoPronto(memoriaRAM, memoriaVirtual, processos[i], tipoPaginacao)
+                processos[i].setStatusExecucao("Pronto")
         
         if len(filaPronto) > 0 or processoEmExecucao is not None:
         
@@ -179,16 +202,24 @@ def robinRound(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 
                 if tempoExecutado == 1:
                     print("Processo p" + str(processoEmExecucao.getId()) + " comecou a executar")
+                    processoEmExecucao.setStatusExecucao("Executando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                 elif tempoExecutado < processoEmExecucao.getTempoExecucao() and (tempoExecutado % processoEmExecucao.getQuantum() != 0 or len(filaPronto) == 0):
                     print("Processo p" + str(processoEmExecucao.getId()) + " esta em execucao com " + str(processoEmExecucao.getTempoExecucao() - tempoExecutado) + "ut pendente")
+                    processoEmExecucao.setStatusExecucao("Executando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                 elif tempoExecutado % processoEmExecucao.getQuantum() == 0 and tempoExecutado != processoEmExecucao.getTempoExecucao() and len(filaPronto) > 0:
                     print("Processo p" + str(processoEmExecucao.getId()) + " pausou a execucao com " + str(processoEmExecucao.getTempoExecucao() - tempoExecutado) + "ut pendente")
+                    processoEmExecucao.setStatusExecucao("Pausando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                     processoEmExecucao.setTempoExecutado(tempoExecutado)
                     sobrecarga = processoEmExecucao.getSobrecarga()
                     filaPronto.append(processoEmExecucao)
                     processoEmExecucao = None
                 else:
                     print("Processo p" + str(processoEmExecucao.getId()) + " finalizou a execucao")
+                    processoEmExecucao.setStatusExecucao("Finalizando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                     tempoRelativo = tempoTotal - processoEmExecucao.getTempoChegada()
                     processoEmExecucao.setTempoExecutado(tempoExecutado)
                     processoEmExecucao.setTempoTermino(tempoRelativo)
@@ -203,7 +234,7 @@ def robinRound(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
     
         tempoTotal += 1
 
-def EDF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
+def EDF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual, tempoLimite=None):
     
     filaPronto = []
     
@@ -216,7 +247,7 @@ def EDF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
 
     sobrecarga = 0
 
-    while (processosFinalizados < len(processos)):
+    while (processosFinalizados < len(processos) and (tempoLimite is None or tempoTotal <= tempoLimite)):
         
         print("----------------------------------")
         print("Intervalo tempo: " + str(tempoTotal) + " - " + str(tempoTotal + 1))
@@ -226,6 +257,7 @@ def EDF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
             if processos[i].getTempoChegada() == tempoTotal:
                 filaPronto.append(processos[i])
                 alocarProcessoPronto(memoriaRAM, memoriaVirtual, processos[i], tipoPaginacao)
+                processos[i].setStatusExecucao("Pronto")
         
         filaPronto.sort(key=lambda processo: processo.getDeadline())
 
@@ -242,16 +274,24 @@ def EDF(tipoPaginacao, processos, memoriaRAM, memoriaVirtual):
                 
                 if tempoExecutado == 1:
                     print("Processo p" + str(processoEmExecucao.getId()) + " comecou a executar")
+                    processoEmExecucao.setStatusExecucao("Executando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                 elif tempoExecutado < processoEmExecucao.getTempoExecucao() and (tempoExecutado % processoEmExecucao.getQuantum() != 0 or len(filaPronto) == 0):
                     print("Processo p" + str(processoEmExecucao.getId()) + " esta em execucao com " + str(processoEmExecucao.getTempoExecucao() - tempoExecutado) + "ut pendente")
+                    processoEmExecucao.setStatusExecucao("Executando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                 elif tempoExecutado % processoEmExecucao.getQuantum() == 0 and tempoExecutado != processoEmExecucao.getTempoExecucao() and len(filaPronto) > 0:
                     print("Processo p" + str(processoEmExecucao.getId()) + " pausou a execucao com " + str(processoEmExecucao.getTempoExecucao() - tempoExecutado) + "ut pendente")
+                    processoEmExecucao.setStatusExecucao("Pausando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                     processoEmExecucao.setTempoExecutado(tempoExecutado)
                     sobrecarga = processoEmExecucao.getSobrecarga()
                     filaPronto.append(processoEmExecucao)
                     processoEmExecucao = None
                 else:
                     print("Processo p" + str(processoEmExecucao.getId()) + " finalizou a execucao")
+                    processoEmExecucao.setStatusExecucao("Finalizando")
+                    logUsoProcessador(processoEmExecucao, tempoTotal, filaPronto)
                     tempoRelativo = tempoTotal - processoEmExecucao.getTempoChegada()
                     processoEmExecucao.setTempoExecutado(tempoExecutado)
                     processoEmExecucao.setTempoTermino(tempoRelativo)

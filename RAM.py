@@ -5,16 +5,9 @@ class RAM:
         #Paginas de 4k, RAM total de 200k (Numero maximo de paginas 50)
         self.__memoria = [None] * 50
         self.__filaAlocacaoProcesso = []
-        #Todo: Corrigir, nao e mais frequentemente utilizado e sim mais recentemente utilizado
 
-    def getMemoriaVirtual(self):
-        return self.__id
-    
-    def setEndereco(self, pagina, posicao):
-        self.__memoria[posicao] = pagina
-    
-    def getEndereco(self, posicao):
-        return self.__memoria[posicao]
+    def getMemoria(self):
+        return self.__memoria
 
     #Todo: Otimizar metodo de busca
     def alocarProcessoNaMemoria(self, processo):

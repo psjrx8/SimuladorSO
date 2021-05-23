@@ -4,13 +4,7 @@ class Disco:
         self.__memoriaVirtual = [None] * tamanhoDisco
     
     def getMemoriaVirtual(self):
-        return self.__id
-    
-    def setEndereco(self, endereco, posicao):
-        self.__memoriaVirtual[posicao] = endereco
-    
-    def getEndereco(self, posicao):
-        return self.__memoriaVirtual[posicao]
+        return self.__memoriaVirtual
     
     def alocarProcessoNoDisco(self, processo):
         paginas = processo.getPaginas()

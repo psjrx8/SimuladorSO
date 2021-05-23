@@ -8,6 +8,7 @@ class Processo:
         self.__tempoExecucao = tempoExecucao
         self.__quantum = quantum
         self.__tempoExecutado = 0
+        self.__logUsoProcessador = []
 
         if deadline is not None:
             self.__deadline = deadline
@@ -76,3 +77,19 @@ class Processo:
 
     def getPaginas(self):
         return self.__paginas
+    
+    def setLogUsoProcessador(self, inicio, fim):
+        if self.__tempoExecutado < self.__tempoExecucao:
+            if self.__statusExecucao == "Pausando":
+                self.__logUsoProcessador.append([inicio, fim, "Executando"])
+                self.__statusExecucao = "Pausado"
+            elif self.__statusExecucao == "Finalizando":
+                self.__logUsoProcessador.append([inicio, fim, "Executando"])
+                self.__statusExecucao = "Finzalizado"
+            else: self.__logUsoProcessador.append([inicio, fim, self.__statusExecucao])
+    
+    def getLogUsoProcessador(self):
+        return self.__logUsoProcessador
+
+    def setStatusExecucao(self, statusExecucao):
+        self.__statusExecucao = statusExecucao
