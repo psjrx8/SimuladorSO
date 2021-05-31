@@ -9,6 +9,7 @@ class Processo:
         self.__quantum = quantum
         self.__tempoExecutado = 0
         self.__logUsoProcessador = []
+        self.__turnRound = 0
 
         if deadline is not None:
             self.__deadline = deadline
@@ -85,7 +86,7 @@ class Processo:
                 self.__statusExecucao = "Pausado"
             elif self.__statusExecucao == "Finalizando":
                 self.__logUsoProcessador.append([inicio, fim, "Executando"])
-                self.__statusExecucao = "Finzalizado"
+                self.__statusExecucao = "Finalizado"
             else: self.__logUsoProcessador.append([inicio, fim, self.__statusExecucao])
     
     def getLogUsoProcessador(self):

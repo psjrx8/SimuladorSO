@@ -28,6 +28,7 @@ nProcessos = 0
 hoje = date.today()
 dataGraph = []
 tempoTotalExecucao = 0
+turnaround = 0
 
 ########################### Conteudo ###########################
 ############## Campos ##############
@@ -110,15 +111,21 @@ tableBody = [
 
 table = dbc.Table(tableHeader + tableBody, bordered=True, responsive=True, style=styles.tableStyle)
 
+########################### Turnround ###########################
+
+turnroundLabel = html.Div(id="turnround")
+
 ############## Botão executar ##############
 execButton = dbc.Button("Executar", className="mb-3", color="primary", id='exec')
 limparButton = dbc.Button("Limpar", className="mb-3", color="primary", id='limpar', style=styles.buttonLimparStyle)
 
-boxDados = [boxForm, algoritmosEscalonamento, algoritmosPaginacao, table, execButton, limparButton]
+boxDados = [turnroundLabel, boxForm, algoritmosEscalonamento, algoritmosPaginacao, table, execButton, limparButton]
 
 ############## Box grafico ##############
 
-boxGraphProcessos = html.Div(id="boxGraphProcessos", style={"height": "600px"})
+boxGraphProcessos = html.Div([
+    html.Div(id="boxGraphProcessos", style={"height": "600px"}),
+])
 boxGraphMemoria = html.Div(id="boxGraphMemoria", style={"height": "600px"})
 
 boxResult = dbc.Tabs(
@@ -133,10 +140,10 @@ boxResult = dbc.Tabs(
 ########################### Componentes HTML ###########################
 
 sliderGraph = html.Div(id="sliderGraph", 
-    children= [dcc.Slider(
-        id="slider", min=0, max=1, 
-        marks={i: str(i) for i in range(1)}, 
-        value=1)])
+    children= [
+        dbc.Label('Tempo de execucao: '),
+        dcc.Slider(id="slider", min=0, max=1, marks={i: str(i) for i in range(1)},value=1)
+    ])
 
 boxConteudo = dbc.Row(
     [
@@ -198,14 +205,50 @@ def populaTabelaProcessos(add, limpar, tempoChegada, tempoExecucao, quantum, dea
 
         nProcessos += 1
 
-        bTempoChegada = tempoChegada is None
-        bTempoExecucao = tempoExecucao is None
-        bQuantum = quantum is None
+        if tempoChegada is not None and tempoChegada >= 0:
+            bTempoChegada = False
+        else:
+            bTempoChegada = True
+        
+        if tempoExecucao is not None and tempoExecucao >= 0:
+            bTempoExecucao = False
+        else:
+            bTempoExecucao = True
+        
+        if quantum is not None and quantum >= 0:
+            bQuantum = False
+        else:
+            bQuantum = True
+        
+        if deadline is not None and deadline >= 0:
+            bDeadline = False
+        elif deadline is None:
+            bDeadline = False
+            deadLine = 0
+        else:
+            bDeadline = True
+
+        if prioridade is not None and prioridade >= 0:
+            bPrioridade = False
+        elif prioridade is None:
+            bPrioridade = False
+            prioridade = 0
+        else:
+            bPrioridade = True
+
+        if sobrecarga is not None and sobrecarga >= 0:
+            bSobrecarga = False
+        elif sobrecarga is None:
+            bSobrecarga = False
+            sobrecarga = 0
+        else:
+            bSobrecarga = True
+        
         bNumeroPaginas = numeroPaginas is None
         if numeroPaginas > 10 or numeroPaginas < 0:
             bNumeroPaginas = True
 
-        if not bTempoChegada and not bTempoExecucao and not bQuantum and not bNumeroPaginas:
+        if not bTempoChegada and not bTempoExecucao and not bQuantum and not bDeadline and not bPrioridade and not bSobrecarga and not bNumeroPaginas:
             
             if deadline is None:
                 deadline = 0
@@ -230,6 +273,7 @@ def populaTabelaProcessos(add, limpar, tempoChegada, tempoExecucao, quantum, dea
         row = []
         tableRow = []
         nProcessos = 0
+        turnround = []
 
     return (row, 
                
@@ -250,15 +294,17 @@ def populaTabelaProcessos(add, limpar, tempoChegada, tempoExecucao, quantum, dea
     [Output('slider',            'max')],
     [Output('slider',            'marks')],
     [Output('slider',            'value')],
+    [Output('turnround',         'children')],
     [Input('exec',               'n_clicks')],
     [Input('radioEscalonamento', 'value')],
     [Input('radioPaginacao',     'value')],
-    [Input('slider',             'value')],
+    [Input('slider',             'value')]
 )
 def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
     global processos
     global dataGraph
     global tempoTotalExecucao
+    global turnround
     
     ctx = dash.callback_context
 
@@ -267,7 +313,8 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
     colors = {
         'Pronto': 'rgb(200, 200, 200)',
         'Executando': 'rgb(0, 255, 100)',
-        'Pausado': 'rgb(255, 168, 81)'
+        'Pausado': 'rgb(255, 168, 81)',
+        'Overhead': 'rgb(240, 68, 77)'
     }
 
     if componentId == 'exec':
@@ -276,6 +323,7 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
         memoriaRAM = RAM.RAM()
         memoriaVirtual = Disco.Disco(100)
 
+        #Monta array de processos
         processos = []
         for processo in tableRow:
 
@@ -290,6 +338,7 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
 
         if len(processos) > 0:
 
+            #Identifica o tipo de escalonamento
             if radioEscalonamento == 1:
                 Escalonamento.FIFO(radioPaginacao, processos, memoriaRAM, memoriaVirtual)
             elif radioEscalonamento == 2:
@@ -299,14 +348,17 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
             elif radioEscalonamento == 4:
                 Escalonamento.EDF(radioPaginacao, processos, memoriaRAM, memoriaVirtual)
 
+            #Inicia variaveis para grafico de escalonamento
             tempoTotalExecucao = 0
             dataGraph = []
             
+            #Inicia variaveis para grafico de RAM e Disco
             memoGraph = []
             discoGraph = []
             totalMemo = 0
             totalDisco = 0
 
+            #Monta valores para grafico de RAM
             idProcessosRAM = []
             dataRam = memoriaRAM.getMemoria()
             for i in range(len(dataRam)):
@@ -314,13 +366,16 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
                 if pagina is not None and pagina.getProcessoId() not in idProcessosRAM:
                     idProcessosRAM.append(pagina.getProcessoId())
 
+            #Monta valores para grafico de Disco
             idProcessosDisco = []
             dataDisco = memoriaVirtual.getMemoriaVirtual()
             for i in range(len(dataDisco)):
                 pagina = dataDisco[i]
                 if pagina is not None and pagina.getProcessoId() not in idProcessosDisco:
                     idProcessosDisco.append(pagina.getProcessoId())
-
+            
+            tempoExecucaoTotal = 0
+            #Monta grafico de Escalonamento, RAM e Disco
             for processo in processos:
                 processoId = processo.getId()
                 task = f'p{processoId}'
@@ -340,6 +395,10 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
                 if processoId in idProcessosDisco:
                     discoGraph.append(go.Bar(name=task, x=["Disco"], y=[len(processo.getPaginas())]))
                     totalDisco += len(processo.getPaginas())
+
+                #Calcular tempo total de execucao dos processos
+                tempoExecucaoTotal += processo.getTempoTermino() + 1
+                #print(f'Processo { processo.getId() } tempo até execucao: { processo.getTempoTermino() }')
 
             if totalMemo <= len(dataRam):
                 memoGraph.append(go.Bar(name=f'none', x=["RAM"], y=[len(dataRam) - totalMemo]))
@@ -364,6 +423,9 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
                         showgrid_x=True, showgrid_y=True)
             processosFig['layout'].update(legend={'x': 1, 'y': 1})
             
+            #Calcular turnround
+            turnround = tempoExecucaoTotal/len(processos)
+            #print(f'Numero de processos: {len(processos)} turnround: { turnround }')
 
             return (
                 [dcc.Graph(id="plot_area", figure=processosFig)],
@@ -372,7 +434,8 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
                 1,
                 tempoTotalExecucao - 1,
                 {i: str(i) for i in range(tempoTotalExecucao)},
-                tempoTotalExecucao - 1
+                tempoTotalExecucao - 1,
+                [dbc.Alert('Turnround: {:.2f}'.format(turnround), color="primary")]
             )
     
     elif componentId == 'slider':
@@ -382,11 +445,13 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
         memoriaVirtualAux = Disco.Disco(100)
         processosAux = processos.copy()
 
+        #Inicia variaveis para grafico de RAM e Disco
         memoGraph = []
         discoGraph = []
         totalMemo = 0
         totalDisco = 0
         
+        #Identifica o tipo de escalonamento
         if radioEscalonamento == 1:
             Escalonamento.FIFO(radioPaginacao, processosAux, memoriaRAMAux, memoriaVirtualAux, timeLimite)
         elif radioEscalonamento == 2:
@@ -396,6 +461,7 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
         elif radioEscalonamento == 4:
             Escalonamento.EDF(radioPaginacao, processosAux, memoriaRAMAux, memoriaVirtualAux, timeLimite)
         
+        #Monta valores para grafico de RAM
         idProcessosRAM = []
         dataRam = memoriaRAMAux.getMemoria()
         for i in range(len(dataRam)):
@@ -403,6 +469,7 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
             if pagina is not None and pagina.getProcessoId() not in idProcessosRAM:
                 idProcessosRAM.append(pagina.getProcessoId())
 
+        #Monta valores para grafico de Disco
         idProcessosDisco = []
         dataDisco = memoriaVirtualAux.getMemoriaVirtual()
         for i in range(len(dataDisco)):
@@ -410,6 +477,7 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
             if pagina is not None and pagina.getProcessoId() not in idProcessosDisco:
                 idProcessosDisco.append(pagina.getProcessoId())
 
+        #Monta grafico de Escalonamento, RAM e Disco
         for processo in processos:
             processoId = processo.getId()
             task = f'p{processoId}'
@@ -457,7 +525,8 @@ def montaGraficoGrantt(n, radioEscalonamento, radioPaginacao, timeLimite):
                 1,
                 tempoTotalExecucao - 1,
                 {i: str(i) for i in range(tempoTotalExecucao)},
-                timeLimite
+                timeLimite,
+                [dbc.Alert('Turnround: {:.2f}'.format(turnround), color="primary")]
             )
     raise PreventUpdate
     #return [html.Div(""), html.Div(""), 1, 1, {i: str(i) for i in range(tempoTotalExecucao)}, 1]
